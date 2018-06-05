@@ -17,6 +17,7 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
+import android.widget.Toast;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -130,14 +131,16 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         protected void onPostExecute(String s) {
+            if (s == null || s.equals("")){
+                onError();
+                return;
+            }
             if (s != null){
                 try{
                     mainObject = new JSONObject(s);
                 }
                 catch (JSONException e) {
                     e.printStackTrace();
-                    routeList.add("No data available");
-                    arrayAdapter.notifyDataSetChanged();
                     return;
                 }
                 Iterator<?> keys = mainObject.keys();
@@ -155,12 +158,19 @@ public class MainActivity extends AppCompatActivity {
                         }
                     }
                     catch (JSONException e) {
+                        onError();
                         e.printStackTrace();
                     }
                 }
                 arrayAdapter.notifyDataSetChanged();
                 layout.setRefreshing(false);
             }
+        }
+
+        protected void onError(){
+            Toast.makeText(MainActivity.this, "There is an error loading data",
+                    Toast.LENGTH_LONG).show();
+            layout.setRefreshing(false);
         }
     }
 }

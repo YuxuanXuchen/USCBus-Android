@@ -11,6 +11,7 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
+import android.widget.Toast;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -100,6 +101,7 @@ public class Stops extends AppCompatActivity {
             arrayAdapter.notifyDataSetChanged();
         } catch (JSONException e) {
             e.printStackTrace();
+            onError();
             return;
         }
     }
@@ -113,6 +115,7 @@ public class Stops extends AppCompatActivity {
                 uscBusUrl = new URL("http://www.uscbus.com:8888");
             }
             catch (MalformedURLException e){
+                onError();
                 e.printStackTrace();
             }
             HttpURLConnection conn = null;
@@ -138,6 +141,7 @@ public class Stops extends AppCompatActivity {
                 }
             } catch (Exception e) {
                 e.printStackTrace();
+                onError();
             } finally {
                 if (conn != null) {
                     conn.disconnect();
@@ -153,5 +157,10 @@ public class Stops extends AppCompatActivity {
             updateList();
             layout.setRefreshing(false);
         }
+    }
+    protected void onError(){
+        Toast.makeText(Stops.this, "There is an error loading data",
+                Toast.LENGTH_LONG).show();
+        layout.setRefreshing(false);
     }
 }
