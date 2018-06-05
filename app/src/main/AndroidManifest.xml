@@ -19,7 +19,8 @@
             </intent-filter>
         </activity>
         <activity android:name=".Stops" />
-        <activity android:name=".Twitter"></activity>
+        <activity android:name=".Twitter" />
+        <activity android:name=".MapActivity"></activity>
     </application>
 
 </manifest>

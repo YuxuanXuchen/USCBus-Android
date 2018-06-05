@@ -4,8 +4,10 @@ import android.app.Activity;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.text.Layout;
 import android.util.JsonReader;
 import android.util.Log;
 import android.view.Menu;
@@ -33,7 +35,9 @@ import java.util.List;
 public class MainActivity extends AppCompatActivity {
 
     private ListView listViewObj;
+    private SwipeRefreshLayout layout;
     List<String> routeList = new ArrayList<>();
+    List<String> routeIdList = new ArrayList<>();
     ArrayAdapter<String> arrayAdapter;
     JSONObject mainObject;
     String JSONResult;
@@ -43,6 +47,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         setTitle("Routes");
         listViewObj = findViewById(R.id.listViewDis);
+        layout = (SwipeRefreshLayout) findViewById(R.id.refreshMain);
         arrayAdapter = new ArrayAdapter<String>
                 (this, android.R.layout.simple_list_item_1, routeList);
         listViewObj.setAdapter(arrayAdapter);
@@ -53,7 +58,14 @@ public class MainActivity extends AppCompatActivity {
                 Intent intent = new Intent(MainActivity.this, Stops.class);
                 intent.putExtra("json", JSONResult);
                 intent.putExtra("key", routeList.get(position));
+                intent.putExtra("routeId", routeIdList.get(position));
                 startActivity(intent);
+            }
+        });
+        layout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+                new FetchSchedule().execute();
             }
         });
     }
@@ -129,13 +141,17 @@ public class MainActivity extends AppCompatActivity {
                     return;
                 }
                 Iterator<?> keys = mainObject.keys();
-
+                routeList.clear();
+                routeIdList.clear();
                 while( keys.hasNext() ) {
                     String key = (String)keys.next();
                     try{
                         if (mainObject.get(key) instanceof JSONObject || mainObject.get(key) instanceof JSONArray) {
                             Log.d("List",key);
-                            routeList.add(key);
+                            String routeName = key.split("%")[0];
+                            routeList.add(routeName);
+                            String routeId = key.split("%")[1];
+                            routeIdList.add(routeId);
                         }
                     }
                     catch (JSONException e) {
@@ -143,6 +159,7 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
                 arrayAdapter.notifyDataSetChanged();
+                layout.setRefreshing(false);
             }
         }
     }
