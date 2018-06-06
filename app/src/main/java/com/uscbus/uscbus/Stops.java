@@ -1,7 +1,10 @@
 package com.uscbus.uscbus;
 
 import android.content.Intent;
+import android.graphics.Typeface;
 import android.os.AsyncTask;
+import android.os.Handler;
+import android.os.Looper;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -9,8 +12,11 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.view.View;
+import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import org.json.JSONArray;
@@ -26,16 +32,21 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class Stops extends AppCompatActivity {
 
     private SwipeRefreshLayout layout;
     List<String> stopList = new ArrayList<>();
+    List<String> busList = new ArrayList<>();
+    List<String> arrivalList = new ArrayList<>();
     ArrayAdapter<String> arrayAdapter;
     JSONObject mainObject;
     String JSONResult;
     String routeName;
     String routeId;
+    Timer refreshTimer;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -43,20 +54,52 @@ public class Stops extends AppCompatActivity {
         layout = findViewById(R.id.refreshStops);
         setTitle("Stops");
         Bundle bundle = getIntent().getExtras();
-        JSONResult = bundle.getString("json");
         routeName = bundle.getString("key");
         routeId = bundle.getString("routeId");
-        arrayAdapter = new ArrayAdapter<String>
-                (this, android.R.layout.simple_list_item_1, stopList);
-        ((ListView)findViewById(R.id.listViewStop)).setAdapter(arrayAdapter);
-        updateList();
+        arrayAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_2, android.R.id.text1, stopList) {
+            @Override
+            public View getView(int position, View convertView, ViewGroup parent) {
+                View view = super.getView(position, convertView, parent);
+                TextView text1 = view.findViewById(android.R.id.text1);
+                TextView text2 = view.findViewById(android.R.id.text2);
+                text1.setTypeface(text1.getTypeface(), Typeface.BOLD);
+                text1.setText(stopList.get(position));
+                text2.setText(busList.get(position).equals("") ? arrivalList.get(position) :
+                        busList.get(position) + " - " + arrivalList.get(position));
+                return view;
+            }
+        };
+        ((ListView) findViewById(R.id.listViewStop)).setAdapter(arrayAdapter);
+        new FetchSchedule().execute();
         layout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
             @Override
             public void onRefresh() {
                 new FetchSchedule().execute();
-                updateList();
             }
         });
+        refreshTimer = new Timer();
+        refreshTimer.scheduleAtFixedRate(new refreshTask(), 30000, 30000);
+    }
+
+    @Override
+    protected void onDestroy() {
+        refreshTimer.cancel();
+        super.onDestroy();
+    }
+
+    private class refreshTask extends TimerTask {
+        @Override
+        public void run() {
+            Stops.this.runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    Toast.makeText(Stops.this, "Data Updated",
+                            Toast.LENGTH_SHORT).show();
+                }
+            });
+            new FetchSchedule().execute();
+            Log.d("refresh", "refresh fired");
+        }
     }
 
     @Override
@@ -79,24 +122,27 @@ public class Stops extends AppCompatActivity {
             mainObject = new JSONObject(JSONResult);
             JSONArray stopArr = (JSONArray)mainObject.get(routeName+"%"+routeId);
             stopList.clear();
+            busList.clear();
+            arrivalList.clear();
             for (int i = 0; i < stopArr.length(); i++) {
                 JSONObject eachStop = stopArr.getJSONObject(i);
-                String result = eachStop.getString("stop");
+                String stopName = eachStop.getString("stop");
                 if (eachStop.has("prediction")){
-                    result += " - No Arriving Time";
+                    busList.add("");
+                    arrivalList.add("No Time Available");
                 }
                 else{
-                    result += " - " + eachStop.getString("busNum") + " - ";
+                    busList.add(eachStop.getString("busNum"));
                     String arrival = eachStop.getString("due");
                     if (arrival.equals("Arriving")){
-                        result += arrival;
                     }
                     else if (arrival.equals("1"))
-                        result += arrival + "min";
+                        arrival += " min";
                     else
-                        result += arrival + "mins";
+                        arrival += " mins";
+                    arrivalList.add(arrival);
                 }
-                stopList.add(result);
+                stopList.add(stopName);
             }
             arrayAdapter.notifyDataSetChanged();
         } catch (JSONException e) {
@@ -109,47 +155,8 @@ public class Stops extends AppCompatActivity {
     public class FetchSchedule extends AsyncTask<Void, Void, String> {
         @Override
         protected String doInBackground(Void... voids) {
-            URL uscBusUrl = null;
-            StringBuffer response = new StringBuffer();
-            try{
-                uscBusUrl = new URL("http://www.uscbus.com:8888");
-            }
-            catch (MalformedURLException e){
-                onError();
-                e.printStackTrace();
-            }
-            HttpURLConnection conn = null;
-            try {
-                conn = (HttpURLConnection) uscBusUrl.openConnection();
-                conn.setDoOutput(false);
-                conn.setDoInput(true);
-                conn.setUseCaches(false);
-                conn.setRequestMethod("GET");
-                conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded;charset=UTF-8");
-
-                // handle the response
-                int status = conn.getResponseCode();
-                if (status != 200) {
-                    throw new IOException("Post failed with error code " + status);
-                } else {
-                    BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-                    String inputLine;
-                    while ((inputLine = in.readLine()) != null) {
-                        response.append(inputLine);
-                    }
-                    in.close();
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-                onError();
-            } finally {
-                if (conn != null) {
-                    conn.disconnect();
-                }
-                JSONResult = response.toString();
-                Log.d("JSON", JSONResult);
-                return JSONResult;
-            }
+            JSONResult = new Utils().httpRequest("http://www.uscbus.com:8888");
+            return JSONResult;
         }
 
         @Override
