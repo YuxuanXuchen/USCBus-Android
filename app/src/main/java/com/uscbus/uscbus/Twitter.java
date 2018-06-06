@@ -16,6 +16,6 @@ public class Twitter extends AppCompatActivity {
         webview.setWebViewClient(new WebViewClient());
         webview.getSettings().setJavaScriptEnabled(true);
         setContentView(webview);
-        webview.loadUrl("https://uscbus.com/twitter.html");
+        webview.loadUrl("file:///android_asset/twitter.html");
     }
 }
