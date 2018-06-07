@@ -52,6 +52,7 @@ public class MainActivity extends AppCompatActivity {
         setTitle("Routes");
         listViewObj = findViewById(R.id.listViewDis);
         layout = findViewById(R.id.refreshMain);
+        layout.setRefreshing(true);
         arrayAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_2, android.R.id.text1, routeIdList) {
             @Override
             public View getView(int position, View convertView, ViewGroup parent) {

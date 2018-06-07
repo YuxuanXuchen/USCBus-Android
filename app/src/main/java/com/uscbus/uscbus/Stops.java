@@ -15,7 +15,9 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
+import android.widget.LinearLayout;
 import android.widget.ListView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -49,6 +51,7 @@ public class Stops extends AppCompatActivity {
     Timer refreshTimer;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        Log.d("refresh", "on Create");
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_stops);
         layout = findViewById(R.id.refreshStops);
@@ -56,6 +59,7 @@ public class Stops extends AppCompatActivity {
         Bundle bundle = getIntent().getExtras();
         routeName = bundle.getString("key");
         routeId = bundle.getString("routeId");
+        layout.setRefreshing(true);
         arrayAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_2, android.R.id.text1, stopList) {
             @Override
             public View getView(int position, View convertView, ViewGroup parent) {
@@ -82,9 +86,20 @@ public class Stops extends AppCompatActivity {
     }
 
     @Override
-    protected void onDestroy() {
+    protected void onPause() {
         refreshTimer.cancel();
-        super.onDestroy();
+        refreshTimer.purge();
+        refreshTimer = null;
+        Log.d("refresh", "on Pause");
+        super.onPause();
+    }
+
+    @Override
+    protected void onRestart() {
+        refreshTimer = new Timer();
+        refreshTimer.scheduleAtFixedRate(new refreshTask(), 0, 30000);
+        Log.d("refresh", "on Restart");
+        super.onRestart();
     }
 
     private class refreshTask extends TimerTask {
@@ -153,6 +168,11 @@ public class Stops extends AppCompatActivity {
     }
 
     public class FetchSchedule extends AsyncTask<Void, Void, String> {
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+        }
+
         @Override
         protected String doInBackground(Void... voids) {
             JSONResult = new Utils().httpRequest("http://www.uscbus.com:8888");
