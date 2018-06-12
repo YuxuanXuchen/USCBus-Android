@@ -43,7 +43,6 @@ public class MainActivity extends AppCompatActivity {
     List<String> routeList = new ArrayList<>();
     List<String> routeIdList = new ArrayList<>();
     ArrayAdapter<String> arrayAdapter;
-    JSONObject mainObject;
     String JSONResult;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -108,40 +107,40 @@ public class MainActivity extends AppCompatActivity {
     public class FetchSchedule extends AsyncTask<Void, Void, String> {
         @Override
         protected String doInBackground(Void... voids) {
-            JSONResult = new Utils().httpRequest("http://www.uscbus.com:8888");
+            if (BuildConfig.DEBUG) {
+                JSONResult = new Utils().httpRequest("http://192.168.29.103:8888");
+            }
+            else
+                JSONResult = new Utils().httpRequest("http://apidata.uscbus.com:8888");
             return JSONResult;
         }
 
         @Override
         protected void onPostExecute(String s) {
+            JSONArray arr;
             if (s == null || s.equals("")){
                 onError();
                 return;
             }
+            else if (s == "{}" || s == "[]")
+                Toast.makeText(MainActivity.this, "Currently there is no available route.",
+                        Toast.LENGTH_LONG).show();
             if (s != null){
                 try{
-                    mainObject = new JSONObject(s);
+                    arr = new JSONArray(s);
                 }
                 catch (JSONException e) {
                     e.printStackTrace();
                     return;
                 }
-                Iterator<?> keys = mainObject.keys();
                 routeList.clear();
                 routeIdList.clear();
-                while( keys.hasNext() ) {
-                    String key = (String)keys.next();
-                    try{
-                        if (mainObject.get(key) instanceof JSONObject || mainObject.get(key) instanceof JSONArray) {
-                            Log.d("List",key);
-                            String routeName = key.split("%")[0];
-                            routeList.add(routeName);
-                            String routeId = key.split("%")[1];
-                            routeIdList.add(routeId);
-                        }
-                    }
-                    catch (JSONException e) {
-                        onError();
+                for (int i = 0; i < arr.length(); i++){
+                    try {
+                        JSONObject routeObj = arr.getJSONObject(i);
+                        routeList.add(routeObj.getString("routeName"));
+                        routeIdList.add(routeObj.getString("routeId"));
+                    }catch (JSONException e){
                         e.printStackTrace();
                     }
                 }
