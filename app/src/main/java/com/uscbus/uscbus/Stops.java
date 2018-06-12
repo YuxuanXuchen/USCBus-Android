@@ -41,14 +41,14 @@ public class Stops extends AppCompatActivity {
 
     private SwipeRefreshLayout layout;
     List<String> stopList = new ArrayList<>();
-    List<String> busList = new ArrayList<>();
-    List<String> arrivalList = new ArrayList<>();
+    List<List<String>> busList = new ArrayList<>();
+    List<List<String>> arrivalList = new ArrayList<>();
     ArrayAdapter<String> arrayAdapter;
-    JSONObject mainObject;
     String JSONResult;
     String routeName;
     String routeId;
     Timer refreshTimer;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         Log.d("refresh", "on Create");
@@ -68,8 +68,20 @@ public class Stops extends AppCompatActivity {
                 TextView text2 = view.findViewById(android.R.id.text2);
                 text1.setTypeface(text1.getTypeface(), Typeface.BOLD);
                 text1.setText(stopList.get(position));
-                text2.setText(busList.get(position).equals("") ? arrivalList.get(position) :
-                        busList.get(position) + " - " + arrivalList.get(position));
+                String subText = "";
+                List<String> eachBusList = busList.get(position);
+                List<String> eachDueList = arrivalList.get(position);
+                for (int i = 0; i < eachBusList.size(); i++) {
+                    subText += "Bus " + eachBusList.get(i);
+                    if (eachDueList.get(i).equals("0")) {
+                        subText += " arriving ";
+                    } else if (eachDueList.get(i).equals("1")) {
+                        subText += " in 1 min ";
+                    } else
+                        subText += " in " + eachDueList.get(i) + " mins ";
+                }
+                if (subText.equals("")) subText = "No arrival time available";
+                text2.setText(subText);
                 return view;
             }
         };
@@ -132,31 +144,43 @@ public class Stops extends AppCompatActivity {
         return true;
     }
 
-    private void updateList(){
+    private void updateList() {
+        JSONArray arr;
         try {
-            mainObject = new JSONObject(JSONResult);
-            JSONArray stopArr = (JSONArray)mainObject.get(routeName+"%"+routeId);
+            arr = new JSONArray(JSONResult);
+            JSONObject routeObj = null;
+            for (int i = 0; i < arr.length(); i++) {
+                try {
+                    JSONObject currObj = arr.getJSONObject(i);
+                    if (currObj.getString("routeName").equals(routeName) &&
+                            currObj.getString("routeId").equals(routeId)) {
+                        routeObj = currObj;
+                    }
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            }
             stopList.clear();
             busList.clear();
             arrivalList.clear();
+            if (routeObj == null) {
+                Log.d("json", "no match");
+                return;
+            }
+            JSONArray stopArr = routeObj.getJSONArray("routeTime");
             for (int i = 0; i < stopArr.length(); i++) {
                 JSONObject eachStop = stopArr.getJSONObject(i);
-                String stopName = eachStop.getString("stop");
-                if (eachStop.has("prediction")){
-                    busList.add("");
-                    arrivalList.add("No Time Available");
+                String stopName = eachStop.getString("stopName");
+                JSONArray arrivalArr = eachStop.getJSONArray("time");
+                List<String> eachBusList = new ArrayList<>();
+                List<String> eachDueList = new ArrayList<>();
+                for (int j = 0; j < arrivalArr.length(); j++) {
+                    JSONObject eachArrival = arrivalArr.getJSONObject(j);
+                    eachBusList.add(eachArrival.getString("busNum"));
+                    eachDueList.add(eachArrival.getString("due"));
                 }
-                else{
-                    busList.add(eachStop.getString("busNum"));
-                    String arrival = eachStop.getString("due");
-                    if (arrival.equals("Arriving")){
-                    }
-                    else if (arrival.equals("1"))
-                        arrival += " min";
-                    else
-                        arrival += " mins";
-                    arrivalList.add(arrival);
-                }
+                busList.add(eachBusList);
+                arrivalList.add(eachDueList);
                 stopList.add(stopName);
             }
             arrayAdapter.notifyDataSetChanged();
@@ -175,7 +199,7 @@ public class Stops extends AppCompatActivity {
 
         @Override
         protected String doInBackground(Void... voids) {
-            JSONResult = new Utils().httpRequest("http://www.uscbus.com:8888");
+            JSONResult = new Utils().httpRequest("http://apidata.uscbus.com:8888");
             return JSONResult;
         }
 
@@ -185,7 +209,8 @@ public class Stops extends AppCompatActivity {
             layout.setRefreshing(false);
         }
     }
-    protected void onError(){
+
+    protected void onError() {
         Toast.makeText(Stops.this, "There is an error loading data",
                 Toast.LENGTH_LONG).show();
         layout.setRefreshing(false);

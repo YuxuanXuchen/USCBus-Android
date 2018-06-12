@@ -43,8 +43,8 @@ public class MainActivity extends AppCompatActivity {
     List<String> routeList = new ArrayList<>();
     List<String> routeIdList = new ArrayList<>();
     ArrayAdapter<String> arrayAdapter;
-    JSONObject mainObject;
     String JSONResult;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -95,10 +95,9 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         Intent intent;
-        if (item.getItemId() == R.id.twitterIcon){
+        if (item.getItemId() == R.id.twitterIcon) {
             intent = new Intent(MainActivity.this, Twitter.class);
-        }
-        else{
+        } else {
             intent = new Intent(MainActivity.this, AboutActivity.class);
         }
         startActivity(intent);
@@ -108,40 +107,34 @@ public class MainActivity extends AppCompatActivity {
     public class FetchSchedule extends AsyncTask<Void, Void, String> {
         @Override
         protected String doInBackground(Void... voids) {
-            JSONResult = new Utils().httpRequest("http://www.uscbus.com:8888");
+            JSONResult = new Utils().httpRequest("http://apidata.uscbus.com:8888");
             return JSONResult;
         }
 
         @Override
         protected void onPostExecute(String s) {
-            if (s == null || s.equals("")){
+            JSONArray arr;
+            if (s == null || s.equals("")) {
                 onError();
                 return;
-            }
-            if (s != null){
-                try{
-                    mainObject = new JSONObject(s);
-                }
-                catch (JSONException e) {
+            } else if (s.equals("{}") || s.equals("[]"))
+                Toast.makeText(MainActivity.this, "Currently there is no available route.",
+                        Toast.LENGTH_LONG).show();
+            if (s != null) {
+                try {
+                    arr = new JSONArray(s);
+                } catch (JSONException e) {
                     e.printStackTrace();
                     return;
                 }
-                Iterator<?> keys = mainObject.keys();
                 routeList.clear();
                 routeIdList.clear();
-                while( keys.hasNext() ) {
-                    String key = (String)keys.next();
-                    try{
-                        if (mainObject.get(key) instanceof JSONObject || mainObject.get(key) instanceof JSONArray) {
-                            Log.d("List",key);
-                            String routeName = key.split("%")[0];
-                            routeList.add(routeName);
-                            String routeId = key.split("%")[1];
-                            routeIdList.add(routeId);
-                        }
-                    }
-                    catch (JSONException e) {
-                        onError();
+                for (int i = 0; i < arr.length(); i++) {
+                    try {
+                        JSONObject routeObj = arr.getJSONObject(i);
+                        routeList.add(routeObj.getString("routeName"));
+                        routeIdList.add(routeObj.getString("routeId"));
+                    } catch (JSONException e) {
                         e.printStackTrace();
                     }
                 }
@@ -150,7 +143,7 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
-        protected void onError(){
+        protected void onError() {
             Toast.makeText(MainActivity.this, "There is an error loading data",
                     Toast.LENGTH_LONG).show();
             layout.setRefreshing(false);
