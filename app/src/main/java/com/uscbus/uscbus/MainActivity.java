@@ -44,6 +44,7 @@ public class MainActivity extends AppCompatActivity {
     List<String> routeIdList = new ArrayList<>();
     ArrayAdapter<String> arrayAdapter;
     String JSONResult;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -94,10 +95,9 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         Intent intent;
-        if (item.getItemId() == R.id.twitterIcon){
+        if (item.getItemId() == R.id.twitterIcon) {
             intent = new Intent(MainActivity.this, Twitter.class);
-        }
-        else{
+        } else {
             intent = new Intent(MainActivity.this, AboutActivity.class);
         }
         startActivity(intent);
@@ -107,40 +107,34 @@ public class MainActivity extends AppCompatActivity {
     public class FetchSchedule extends AsyncTask<Void, Void, String> {
         @Override
         protected String doInBackground(Void... voids) {
-            if (BuildConfig.DEBUG) {
-                JSONResult = new Utils().httpRequest("http://192.168.29.103:8888");
-            }
-            else
-                JSONResult = new Utils().httpRequest("http://apidata.uscbus.com:8888");
+            JSONResult = new Utils().httpRequest("http://apidata.uscbus.com:8888");
             return JSONResult;
         }
 
         @Override
         protected void onPostExecute(String s) {
             JSONArray arr;
-            if (s == null || s.equals("")){
+            if (s == null || s.equals("")) {
                 onError();
                 return;
-            }
-            else if (s == "{}" || s == "[]")
+            } else if (s.equals("{}") || s.equals("[]"))
                 Toast.makeText(MainActivity.this, "Currently there is no available route.",
                         Toast.LENGTH_LONG).show();
-            if (s != null){
-                try{
+            if (s != null) {
+                try {
                     arr = new JSONArray(s);
-                }
-                catch (JSONException e) {
+                } catch (JSONException e) {
                     e.printStackTrace();
                     return;
                 }
                 routeList.clear();
                 routeIdList.clear();
-                for (int i = 0; i < arr.length(); i++){
+                for (int i = 0; i < arr.length(); i++) {
                     try {
                         JSONObject routeObj = arr.getJSONObject(i);
                         routeList.add(routeObj.getString("routeName"));
                         routeIdList.add(routeObj.getString("routeId"));
-                    }catch (JSONException e){
+                    } catch (JSONException e) {
                         e.printStackTrace();
                     }
                 }
@@ -149,7 +143,7 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
-        protected void onError(){
+        protected void onError() {
             Toast.makeText(MainActivity.this, "There is an error loading data",
                     Toast.LENGTH_LONG).show();
             layout.setRefreshing(false);

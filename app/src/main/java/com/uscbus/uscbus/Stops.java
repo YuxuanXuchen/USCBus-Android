@@ -48,6 +48,7 @@ public class Stops extends AppCompatActivity {
     String routeName;
     String routeId;
     Timer refreshTimer;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         Log.d("refresh", "on Create");
@@ -70,8 +71,14 @@ public class Stops extends AppCompatActivity {
                 String subText = "";
                 List<String> eachBusList = busList.get(position);
                 List<String> eachDueList = arrivalList.get(position);
-                for (int i = 0; i < eachBusList.size(); i++){
-                    subText += "Bus " + eachBusList.get(i) + " in " + eachDueList.get(i) + " mins ";
+                for (int i = 0; i < eachBusList.size(); i++) {
+                    subText += "Bus " + eachBusList.get(i);
+                    if (eachDueList.get(i).equals("0")) {
+                        subText += " arriving ";
+                    } else if (eachDueList.get(i).equals("1")) {
+                        subText += " in 1 min ";
+                    } else
+                        subText += " in " + eachDueList.get(i) + " mins ";
                 }
                 if (subText.equals("")) subText = "No arrival time available";
                 text2.setText(subText);
@@ -137,20 +144,19 @@ public class Stops extends AppCompatActivity {
         return true;
     }
 
-    private void updateList(){
+    private void updateList() {
         JSONArray arr;
         try {
             arr = new JSONArray(JSONResult);
             JSONObject routeObj = null;
-            for (int i = 0; i < arr.length(); i++){
+            for (int i = 0; i < arr.length(); i++) {
                 try {
                     JSONObject currObj = arr.getJSONObject(i);
-                    Log.d("json", currObj.getString("routeName") +":"+routeName+"=="+currObj.getString("routeId")+":"+routeId);
                     if (currObj.getString("routeName").equals(routeName) &&
-                    currObj.getString("routeId").equals(routeId)){
+                            currObj.getString("routeId").equals(routeId)) {
                         routeObj = currObj;
                     }
-                }catch (JSONException e){
+                } catch (JSONException e) {
                     e.printStackTrace();
                 }
             }
@@ -168,8 +174,8 @@ public class Stops extends AppCompatActivity {
                 JSONArray arrivalArr = eachStop.getJSONArray("time");
                 List<String> eachBusList = new ArrayList<>();
                 List<String> eachDueList = new ArrayList<>();
-                for (int j = 0; j < arrivalArr.length(); j++){
-                    JSONObject eachArrival = arrivalArr.getJSONObject(i);
+                for (int j = 0; j < arrivalArr.length(); j++) {
+                    JSONObject eachArrival = arrivalArr.getJSONObject(j);
                     eachBusList.add(eachArrival.getString("busNum"));
                     eachDueList.add(eachArrival.getString("due"));
                 }
@@ -193,11 +199,7 @@ public class Stops extends AppCompatActivity {
 
         @Override
         protected String doInBackground(Void... voids) {
-            if (BuildConfig.DEBUG) {
-                JSONResult = new Utils().httpRequest("http://192.168.29.103:8888");
-            }
-            else
-                JSONResult = new Utils().httpRequest("http://apidata.uscbus.com:8888");
+            JSONResult = new Utils().httpRequest("http://apidata.uscbus.com:8888");
             return JSONResult;
         }
 
@@ -207,7 +209,8 @@ public class Stops extends AppCompatActivity {
             layout.setRefreshing(false);
         }
     }
-    protected void onError(){
+
+    protected void onError() {
         Toast.makeText(Stops.this, "There is an error loading data",
                 Toast.LENGTH_LONG).show();
         layout.setRefreshing(false);
