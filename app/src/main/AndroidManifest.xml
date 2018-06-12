@@ -20,7 +20,8 @@
         </activity>
         <activity android:name=".Stops" />
         <activity android:name=".Twitter" />
-        <activity android:name=".MapActivity"></activity>
+        <activity android:name=".MapActivity" />
+        <activity android:name=".AboutActivity"></activity>
     </application>
 
 </manifest>
