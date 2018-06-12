@@ -3,7 +3,14 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <item
-        android:id="@+id/action_name"
+        android:id="@+id/aboutIcon"
+        android:icon="@drawable/info"
+        android:title="Information"
+        app:showAsAction="always"
+        android:orderInCategory="0"/>
+
+    <item
+        android:id="@+id/twitterIcon"
         android:icon="@drawable/twitter"
         android:title="Twitter"
         app:showAsAction="always"

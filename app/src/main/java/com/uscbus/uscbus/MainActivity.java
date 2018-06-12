@@ -94,7 +94,13 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        Intent intent = new Intent(MainActivity.this, Twitter.class);
+        Intent intent;
+        if (item.getItemId() == R.id.twitterIcon){
+            intent = new Intent(MainActivity.this, Twitter.class);
+        }
+        else{
+            intent = new Intent(MainActivity.this, AboutActivity.class);
+        }
         startActivity(intent);
         return true;
     }
