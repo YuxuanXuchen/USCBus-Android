@@ -2,6 +2,7 @@ package com.uscbus.uscbus;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.graphics.Color;
 import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.AsyncTask;
@@ -63,6 +64,7 @@ public class MainActivity extends AppCompatActivity {
                 text1.setText(routeList.get(position));
                 text1.setTextSize(18);
                 text2.setText("Route " + routeIdList.get(position));
+                text2.setTextColor(Color.parseColor("#a6a6a6"));
                 return view;
             }
         };
