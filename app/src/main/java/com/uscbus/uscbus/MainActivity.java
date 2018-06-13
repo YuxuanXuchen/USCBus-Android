@@ -39,7 +39,6 @@ import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
-    private ListView listViewObj;
     private SwipeRefreshLayout layout;
     List<String> routeList = new ArrayList<>();
     List<String> routeIdList = new ArrayList<>();
@@ -51,7 +50,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         setTitle("Routes");
-        listViewObj = findViewById(R.id.listViewDis);
+        ListView listViewObj = findViewById(R.id.listViewDis);
         layout = findViewById(R.id.refreshMain);
         layout.setRefreshing(true);
         arrayAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_2, android.R.id.text1, routeIdList) {
@@ -106,6 +105,43 @@ public class MainActivity extends AppCompatActivity {
         return true;
     }
 
+    private void processJSON(String s) {
+        JSONArray arr;
+        if (JSONResult == null || JSONResult.equals("")) {
+            onError();
+            return;
+        } else if (JSONResult.equals("{}") || JSONResult.equals("[]"))
+            Toast.makeText(MainActivity.this, "Currently there is no available route.",
+                    Toast.LENGTH_LONG).show();
+        if (JSONResult != null) {
+            try {
+                arr = new JSONArray(s);
+            } catch (JSONException e) {
+                e.printStackTrace();
+                return;
+            }
+            routeList.clear();
+            routeIdList.clear();
+            for (int i = 0; i < arr.length(); i++) {
+                try {
+                    JSONObject routeObj = arr.getJSONObject(i);
+                    routeList.add(routeObj.getString("routeName"));
+                    routeIdList.add(routeObj.getString("routeId"));
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            }
+            arrayAdapter.notifyDataSetChanged();
+            layout.setRefreshing(false);
+        }
+    }
+
+    protected void onError() {
+        Toast.makeText(MainActivity.this, "There is an error loading data",
+                Toast.LENGTH_LONG).show();
+        layout.setRefreshing(false);
+    }
+
     public class FetchSchedule extends AsyncTask<Void, Void, String> {
         @Override
         protected String doInBackground(Void... voids) {
@@ -115,40 +151,7 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         protected void onPostExecute(String s) {
-            JSONArray arr;
-            if (s == null || s.equals("")) {
-                onError();
-                return;
-            } else if (s.equals("{}") || s.equals("[]"))
-                Toast.makeText(MainActivity.this, "Currently there is no available route.",
-                        Toast.LENGTH_LONG).show();
-            if (s != null) {
-                try {
-                    arr = new JSONArray(s);
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                    return;
-                }
-                routeList.clear();
-                routeIdList.clear();
-                for (int i = 0; i < arr.length(); i++) {
-                    try {
-                        JSONObject routeObj = arr.getJSONObject(i);
-                        routeList.add(routeObj.getString("routeName"));
-                        routeIdList.add(routeObj.getString("routeId"));
-                    } catch (JSONException e) {
-                        e.printStackTrace();
-                    }
-                }
-                arrayAdapter.notifyDataSetChanged();
-                layout.setRefreshing(false);
-            }
-        }
-
-        protected void onError() {
-            Toast.makeText(MainActivity.this, "There is an error loading data",
-                    Toast.LENGTH_LONG).show();
-            layout.setRefreshing(false);
+            processJSON(s);
         }
     }
 }

@@ -21,7 +21,10 @@
         <activity android:name=".Stops" />
         <activity android:name=".Twitter" />
         <activity android:name=".MapActivity" />
-        <activity android:name=".AboutActivity"></activity>
+        <activity android:name=".AboutActivity" />
+        <activity android:name=".StopDetail"
+            android:enabled="true"
+            android:theme="@style/PopupTheme"/>
     </application>
 
 </manifest>
