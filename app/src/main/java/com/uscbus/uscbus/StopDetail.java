@@ -34,7 +34,6 @@ public class StopDetail extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_stop_detail);
-        resize();
         Bundle bundle = getIntent().getExtras();
         String stopName = bundle.getString("stopName");
         String stopId = bundle.getString("stopId");
@@ -43,12 +42,23 @@ public class StopDetail extends AppCompatActivity {
         ((TextView) findViewById(R.id.stopId)).setText("Stop " + stopId);
         ((TextView) findViewById(R.id.stopName)).setText(stopName);
         Log.d("stopdetail", busList.toString());
+        if (busList.isEmpty()) {
+            busList.add("");
+            arrivalList.add("");
+            resize(0.3);
+        }
+        else
+            resize(0.4);
         arrayAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, busList){
             @NonNull
             @Override
             public View getView(int position, @Nullable View convertView, @NonNull ViewGroup parent) {
                 View view = super.getView(position, convertView, parent);
                 TextView textView = view.findViewById(android.R.id.text1);
+                if (position == 0 && busList.get(position).equals("")){
+                    textView.setText("Currently there is no bus arrival time available.");
+                    return view;
+                }
                 textView.setTextSize(20);
                 String busName = "Bus " + busList.get(position);
                 String arrival = arrivalList.get(position);
@@ -67,12 +77,12 @@ public class StopDetail extends AppCompatActivity {
         arrayAdapter.notifyDataSetChanged();
     }
 
-    public void resize() {
+    public void resize(double heightIdx) {
         DisplayMetrics displayMetrics = new DisplayMetrics();
         getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
         int height = displayMetrics.heightPixels;
         int width = displayMetrics.widthPixels;
-        this.getWindow().setLayout((int) (width * 0.95), (int) (height * 0.4));
+        this.getWindow().setLayout((int) (width * 0.95), (int) (height * heightIdx));
     }
 
     private void setLeftRightString(TextView view, String leftText, String rightText) {
