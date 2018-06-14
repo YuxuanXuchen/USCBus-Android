@@ -19,9 +19,11 @@
             </intent-filter>
         </activity>
         <activity android:name=".Stops" />
-        <activity android:name=".Twitter" />
+        <activity android:name=".Twitter"
+            android:theme="@style/PopupTheme"/>
         <activity android:name=".MapActivity" />
-        <activity android:name=".AboutActivity" />
+        <activity android:name=".AboutActivity"
+            android:theme="@style/PopupTheme"/>
         <activity android:name=".StopDetail"
             android:enabled="true"
             android:theme="@style/PopupTheme"/>

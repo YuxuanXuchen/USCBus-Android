@@ -46,6 +46,7 @@ public class Stops extends AppCompatActivity {
     String routeName;
     String routeId;
     Timer refreshTimer;
+    final int REFRESH_TIME = 10000;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -88,7 +89,7 @@ public class Stops extends AppCompatActivity {
             }
         });
         refreshTimer = new Timer();
-        refreshTimer.scheduleAtFixedRate(new refreshTask(), 20000, 20000);
+        refreshTimer.scheduleAtFixedRate(new refreshTask(), REFRESH_TIME, REFRESH_TIME);
     }
 
     private void updateListItems(int position, TextView text1, TextView text2) {
@@ -187,7 +188,7 @@ public class Stops extends AppCompatActivity {
         super.onResume();
         if (refreshTimer == null){
             refreshTimer = new Timer();
-            refreshTimer.scheduleAtFixedRate(new refreshTask(), 10000, 20000);
+            refreshTimer.scheduleAtFixedRate(new refreshTask(), 0, REFRESH_TIME);
             Log.d("refresh", "on Resume");
         }
     }
@@ -195,7 +196,7 @@ public class Stops extends AppCompatActivity {
     @Override
     protected void onRestart() {
         refreshTimer = new Timer();
-        refreshTimer.scheduleAtFixedRate(new refreshTask(), 0, 20000);
+        refreshTimer.scheduleAtFixedRate(new refreshTask(), 0, REFRESH_TIME);
         Log.d("refresh", "on Restart");
         super.onRestart();
     }

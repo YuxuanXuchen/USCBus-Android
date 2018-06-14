@@ -45,10 +45,8 @@ public class StopDetail extends AppCompatActivity {
         if (busList.isEmpty()) {
             busList.add("");
             arrivalList.add("");
-            resize(0.3);
         }
-        else
-            resize(0.4);
+        resize(0.15 + busList.size()*0.07);
         arrayAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, busList){
             @NonNull
             @Override
