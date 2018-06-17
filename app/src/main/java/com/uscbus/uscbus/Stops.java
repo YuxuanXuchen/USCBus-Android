@@ -1,10 +1,12 @@
 package com.uscbus.uscbus;
 
+import android.app.ActionBar;
 import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Typeface;
 import android.os.AsyncTask;
+import android.support.v4.app.NavUtils;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -90,6 +92,7 @@ public class Stops extends AppCompatActivity {
         });
         refreshTimer = new Timer();
         refreshTimer.scheduleAtFixedRate(new refreshTask(), REFRESH_TIME, REFRESH_TIME);
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
     }
 
     private void updateListItems(int position, TextView text1, TextView text2) {
@@ -218,9 +221,15 @@ public class Stops extends AppCompatActivity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        Intent intent = new Intent(Stops.this, MapActivity.class);
-        intent.putExtra("routeId", routeId);
-        startActivity(intent);
+        if (item.getItemId() == R.id.mapIcon) {
+            Intent intent = new Intent(Stops.this, MapActivity.class);
+            intent.putExtra("routeId", routeId);
+            startActivity(intent);
+        }
+        else if (item.getItemId() == android.R.id.home){
+            finish();
+            return true;
+        }
         return true;
     }
 
