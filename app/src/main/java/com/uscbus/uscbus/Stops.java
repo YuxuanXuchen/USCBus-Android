@@ -1,12 +1,14 @@
 package com.uscbus.uscbus;
 
-import android.app.ActionBar;
+import android.annotation.SuppressLint;
+import android.app.AlertDialog;
 import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Typeface;
 import android.os.AsyncTask;
-import android.support.v4.app.NavUtils;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -56,10 +58,10 @@ public class Stops extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_stops);
         layout = findViewById(R.id.refreshStops);
-        setTitle("Stops");
         Bundle bundle = getIntent().getExtras();
         routeName = bundle.getString("key");
         routeId = bundle.getString("routeId");
+        setTitle(routeName);
         layout.setRefreshing(true);
         arrayAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_2, android.R.id.text1, stopList) {
             @Override
@@ -72,15 +74,15 @@ public class Stops extends AppCompatActivity {
             }
         };
         ((ListView) findViewById(R.id.listViewStop)).setAdapter(arrayAdapter);
-        ((ListView) findViewById(R.id.listViewStop)).setOnItemClickListener(new AdapterView.OnItemClickListener(){
+        ((ListView) findViewById(R.id.listViewStop)).setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                Intent intent = new Intent(Stops.this, StopDetail.class);
-                intent.putExtra("stopName", stopList.get(position));
-                intent.putExtra("stopId", stopIdList.get(position));
-                intent.putStringArrayListExtra("busList", (ArrayList<String>)busList.get(position));
-                intent.putStringArrayListExtra("arrivalList", (ArrayList<String>)arrivalList.get(position));
-                startActivity(intent);
+                AlertDialog.Builder builder = new AlertDialog.Builder(Stops.this);
+                View layoutView = getLayoutInflater().inflate(R.layout.stop_detail, null);
+                showDialog(stopList.get(position), stopIdList.get(position), busList.get(position), arrivalList.get(position), layoutView);
+                builder.setView(layoutView);
+                AlertDialog dialog = builder.create();
+                dialog.show();
             }
         });
         new FetchSchedule().execute();
@@ -95,11 +97,90 @@ public class Stops extends AppCompatActivity {
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
     }
 
+    public void showDialog(final String stopName, final String stopId, final List<String> busList, final List<String> arrivalList, View mView) {
+        ArrayAdapter arrayAdapter;
+        ListView stopDetailLv;
+
+        ((TextView) mView.findViewById(R.id.stopId)).setText("Stop " + stopId);
+        ((TextView) mView.findViewById(R.id.stopName)).setText(stopName);
+        Log.d("stopdetail", busList.toString());
+        if (busList.isEmpty()) {
+            busList.add("");
+            arrivalList.add("");
+        }
+        arrayAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, busList) {
+            @NonNull
+            @Override
+            public View getView(int position, @Nullable View convertView, @NonNull ViewGroup parent) {
+                View view = super.getView(position, convertView, parent);
+                TextView textView = view.findViewById(android.R.id.text1);
+                if (position == 0 && busList.get(position).equals("")) {
+                    textView.setText("Currently there is no bus arrival time available.");
+                    return view;
+                }
+                textView.setTextSize(20);
+                String busName = "Bus " + busList.get(position);
+                String arrival = arrivalList.get(position);
+                if (arrival.equals("0"))
+                    arrival = "Arriving";
+                else if (arrival.equals("1"))
+                    arrival = "1 min";
+                else
+                    arrival += " mins";
+                setLeftRightString(textView, busName, arrival);
+                return view;
+            }
+        };
+        stopDetailLv = mView.findViewById(R.id.stopDetail);
+        stopDetailLv.setAdapter(arrayAdapter);
+        stopDetailLv.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @SuppressLint("SetTextI18n")
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                final String bus = busList.get(position);
+                AlertDialog.Builder builder = new AlertDialog.Builder(Stops.this);
+                View layoutView = getLayoutInflater().inflate(R.layout.confirm_tracking, null, false);
+                TextView promptText = layoutView.findViewById(R.id.confirmPromp);
+                if (bus.equals("")) {
+                    return;
+                }
+                promptText.setText("Do yo want to track Bus " + bus + " at " + stopName + "?");
+                builder.setView(layoutView);
+                final AlertDialog dialog = builder.create();
+                dialog.show();
+                (layoutView.findViewById(R.id.cancelTrack)).setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        dialog.dismiss();
+                    }
+                });
+                (layoutView.findViewById(R.id.confirmTrack)).setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        dialog.dismiss();
+                        startBackgroundService(bus, stopId);
+                    }
+                });
+            }
+        });
+        arrayAdapter.notifyDataSetChanged();
+    }
+
+    void startBackgroundService(String bus, String stopId){
+        Intent intent = new Intent(Stops.this, NotificationService.class);
+        intent.putExtra("busId", bus);
+        intent.putExtra("stopId", stopId);
+        intent.putExtra("routeId", routeId);
+        intent.putExtra("routeName", routeName);
+        intent.setAction(Constants.ACTION.START_FOREGROUND_ACTION);
+        startService(intent);
+    }
+
     private void updateListItems(int position, TextView text1, TextView text2) {
         text1.setTypeface(text1.getTypeface(), Typeface.BOLD);
         StringBuilder sbSubText = new StringBuilder();
         String stopNameString = stopList.get(position);
-        String stopIdString = "Stop "+ stopIdList.get(position);
+        String stopIdString = "Stop " + stopIdList.get(position);
         String arrivalString = "";
         String arrivalBus = "";
         List<String> eachBusList = busList.get(position);
@@ -107,8 +188,8 @@ public class Stops extends AppCompatActivity {
 
         for (int i = 0; i < eachBusList.size(); i++) {
             // the first bus coming
-            if (i == 0){
-                arrivalBus = "#"+eachBusList.get(i);
+            if (i == 0) {
+                arrivalBus = "#" + eachBusList.get(i);
                 if (eachDueList.get(i).equals("0")) {
                     arrivalString += ("Arriving");
                 } else if (eachDueList.get(i).equals("1")) {
@@ -117,7 +198,7 @@ public class Stops extends AppCompatActivity {
                     arrivalString += (eachDueList.get(i) + " mins");
                 continue;
             }
-            sbSubText.append("#"+eachBusList.get(i));
+            sbSubText.append("#" + eachBusList.get(i));
             if (eachDueList.get(i).equals("0")) {
                 sbSubText.append(" Arriving");
             } else if (eachDueList.get(i).equals("1")) {
@@ -134,7 +215,7 @@ public class Stops extends AppCompatActivity {
         setLeftRightString(text2, stopIdString, arrivalBus);
     }
 
-    private void setLeftRightString(TextView view, String leftText, String rightText){
+    private void setLeftRightString(TextView view, String leftText, String rightText) {
         String fullText = leftText + "\n " + rightText;     // only works if  linefeed between them! "\n ";
 
         int fullTextLength = fullText.length();
@@ -143,10 +224,11 @@ public class Stops extends AppCompatActivity {
         final SpannableString s = new SpannableString(fullText);
         AlignmentSpan alignmentSpan = new AlignmentSpan.Standard(Layout.Alignment.ALIGN_OPPOSITE);
         s.setSpan(alignmentSpan, leftEnd, fullTextLength, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-        s.setSpan(new SetLineOverlap(true), 1, fullTextLength-2, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-        s.setSpan(new SetLineOverlap(false), fullTextLength-1, fullTextLength, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+        s.setSpan(new SetLineOverlap(true), 1, fullTextLength - 2, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+        s.setSpan(new SetLineOverlap(false), fullTextLength - 1, fullTextLength, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
         view.setText(s);
     }
+
     private static class SetLineOverlap implements LineHeightSpan {
         private int originalBottom = 15;        // init value ignored
         private int originalDescent = 13;       // init value ignored
@@ -189,7 +271,7 @@ public class Stops extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        if (refreshTimer == null){
+        if (refreshTimer == null) {
             refreshTimer = new Timer();
             refreshTimer.scheduleAtFixedRate(new refreshTask(), 0, REFRESH_TIME);
             Log.d("refresh", "on Resume");
@@ -225,8 +307,7 @@ public class Stops extends AppCompatActivity {
             Intent intent = new Intent(Stops.this, MapActivity.class);
             intent.putExtra("routeId", routeId);
             startActivity(intent);
-        }
-        else if (item.getItemId() == android.R.id.home){
+        } else if (item.getItemId() == android.R.id.home) {
             finish();
             return true;
         }
@@ -235,7 +316,8 @@ public class Stops extends AppCompatActivity {
 
     private void processJSON() {
         JSONArray arr;
-//        JSONResult = "[{\"routeName\": \"Alhambra \", \"routeTime\": [{\"stopId\": \"500974\", \"time\": [], \"stopName\": \"Alhambra\"}, {\"stopId\": \"292024\", \"time\": [], \"stopName\": \"Norris Cancer Hospital\"}], \"routeId\": \"1391\"}, {\"routeName\": \"C Route Summer 2018\", \"routeTime\": [{\"stopId\": \"2309555\", \"time\": [], \"stopName\": \"Leavey Library\"}, {\"stopId\": \"384502\", \"time\": [], \"stopName\": \"JEP House\"}, {\"stopId\": \"2309556\", \"time\": [], \"stopName\": \"Dental School\"}, {\"stopId\": \"39109\", \"time\": [], \"stopName\": \"34th/McClintock\"}, {\"stopId\": \"1113621\", \"time\": [], \"stopName\": \"Cardinal Gardens\"}, {\"stopId\": \"3720219\", \"time\": [], \"stopName\": \"30th & Orchard\"}, {\"stopId\": \"44601\", \"time\": [], \"stopName\": \"Terrace Apts.\"}, {\"stopId\": \"44561\", \"time\": [], \"stopName\": \"2726-2816 Menlo Ave\"}, {\"stopId\": \"44562\", \"time\": [], \"stopName\": \"2658 Menlo Ave\"}, {\"stopId\": \"395045\", \"time\": [], \"stopName\": \"Adams/Menlo\"}, {\"stopId\": \"44604\", \"time\": [], \"stopName\": \"2632 Ellendale Pl.\"}, {\"stopId\": \"44603\", \"time\": [], \"stopName\": \"2700 Ellendale Pl.\"}, {\"stopId\": \"44616\", \"time\": [], \"stopName\": \"28th & Orchard Ave.\"}, {\"stopId\": \"44607\", \"time\": [], \"stopName\": \"University Regents Apts.\"}, {\"stopId\": \"498234\", \"time\": [], \"stopName\": \"25th and Magnolia\"}, {\"stopId\": \"498235\", \"time\": [], \"stopName\": \"24th and Magnolia\"}, {\"stopId\": \"498230\", \"time\": [], \"stopName\": \"24th St Theater\"}, {\"stopId\": \"2578359\", \"time\": [], \"stopName\": \"23rd and Portland\"}, {\"stopId\": \"44572\", \"time\": [], \"stopName\": \"2341 Portland\"}, {\"stopId\": \"2578361\", \"time\": [], \"stopName\": \"Portland and Adams\"}, {\"stopId\": \"44624\", \"time\": [], \"stopName\": \"Sierra Apts.\"}, {\"stopId\": \"44625\", \"time\": [], \"stopName\": \"Founders Apts.\"}, {\"stopId\": \"498262\", \"time\": [], \"stopName\": \"Hillview Apts\"}, {\"stopId\": \"498263\", \"time\": [], \"stopName\": \"Pacific Apts\"}, {\"stopId\": \"44631\", \"time\": [], \"stopName\": \"28th St. & University\"}, {\"stopId\": \"44634\", \"time\": [], \"stopName\": \"Annenberg House\"}, {\"stopId\": \"44635\", \"time\": [], \"stopName\": \"Stardust Apts.\"}], \"routeId\": \"8559\"}, {\"routeName\": \"Circuit Tram\", \"routeTime\": [{\"stopId\": \"1694684\", \"time\": [], \"stopName\": \"Lot 71\"}, {\"stopId\": \"292023\", \"time\": [{\"arriveTime\": \"2:20 PM\", \"busNum\": \"A801\", \"due\": \"1\"}], \"stopName\": \"Eastlake & Biggy\"}, {\"stopId\": \"1694687\", \"time\": [{\"arriveTime\": \"2:25 PM\", \"busNum\": \"A801\", \"due\": \"5\"}], \"stopName\": \"Outpatient (OPD)\"}, {\"stopId\": \"438551\", \"time\": [{\"arriveTime\": \"2:28 PM\", \"busNum\": \"A801\", \"due\": \"8\"}], \"stopName\": \"Busway\"}, {\"stopId\": \"1694688\", \"time\": [{\"arriveTime\": \"2:31 PM\", \"busNum\": \"A801\", \"due\": \"11\"}], \"stopName\": \"Healthcare Research (HRA)\"}, {\"stopId\": \"438553\", \"time\": [{\"arriveTime\": \"2:33 PM\", \"busNum\": \"A801\", \"due\": \"13\"}], \"stopName\": \"LAC/USC Med Center\"}], \"routeId\": \"3420\"}, {\"routeName\": \"City Center (ATT)\", \"routeTime\": [{\"stopId\": \"2475284\", \"time\": [], \"stopName\": \"Jefferson & Hoover\"}, {\"stopId\": \"1769467\", \"time\": [], \"stopName\": \"City Center (ATT)\"}], \"routeId\": \"3630\"}, {\"routeName\": \"Football Shuttle\", \"routeTime\": [{\"stopId\": \"2908675\", \"time\": [], \"stopName\": \"Grand Ave Structure\"}, {\"stopId\": \"2908676\", \"time\": [], \"stopName\": \"Pardee Entrance\"}, {\"stopId\": \"2908677\", \"time\": [], \"stopName\": \"Expo at Pardee\"}, {\"stopId\": \"2553818\", \"time\": [], \"stopName\": \"PC on Hope\"}], \"routeId\": \"6518\"}, {\"routeName\": \"Marina Del Rey\", \"routeTime\": [{\"stopId\": \"2553842\", \"time\": [], \"stopName\": \"37th Place and Watt Way\"}, {\"stopId\": \"1887958\", \"time\": [], \"stopName\": \"ICT\"}, {\"stopId\": \"2868675\", \"time\": [], \"stopName\": \"ISI (new stop)\"}], \"routeId\": \"1267\"}, {\"routeName\": \"Parking Center Summer 2018\", \"routeTime\": [{\"stopId\": \"384508\", \"time\": [], \"stopName\": \"Parking Center\"}, {\"stopId\": \"395067\", \"time\": [], \"stopName\": \"CAL North\"}, {\"stopId\": \"2309555\", \"time\": [], \"stopName\": \"Leavey Library\"}, {\"stopId\": \"384502\", \"time\": [{\"arriveTime\": \"2:24 PM\", \"busNum\": \"A805\", \"due\": \"4\"}], \"stopName\": \"JEP House\"}, {\"stopId\": \"2309556\", \"time\": [{\"arriveTime\": \"2:26 PM\", \"busNum\": \"A805\", \"due\": \"6\"}], \"stopName\": \"Dental School\"}, {\"stopId\": \"39109\", \"time\": [{\"arriveTime\": \"2:26 PM\", \"busNum\": \"A805\", \"due\": \"6\"}], \"stopName\": \"34th/McClintock\"}, {\"stopId\": \"2868672\", \"time\": [{\"arriveTime\": \"2:27 PM\", \"busNum\": \"A805\", \"due\": \"7\"}], \"stopName\": \"Childs and McClintock\"}, {\"stopId\": \"2553842\", \"time\": [{\"arriveTime\": \"2:29 PM\", \"busNum\": \"A805\", \"due\": \"9\"}], \"stopName\": \"37th Place and Watt Way\"}, {\"stopId\": \"1055409\", \"time\": [{\"arriveTime\": \"\", \"busNum\": \"A750\", \"due\": \"0\"}, {\"arriveTime\": \"2:32 PM\", \"busNum\": \"A805\", \"due\": \"12\"}], \"stopName\": \"Gate 2\"}, {\"stopId\": \"395069\", \"time\": [{\"arriveTime\": \"2:23 PM\", \"busNum\": \"A750\", \"due\": \"3\"}, {\"arriveTime\": \"2:35 PM\", \"busNum\": \"A805\", \"due\": \"15\"}], \"stopName\": \"Transit Ctr (7am-6pm)\"}, {\"stopId\": \"384507\", \"time\": [{\"arriveTime\": \"2:24 PM\", \"busNum\": \"A750\", \"due\": \"4\"}, {\"arriveTime\": \"2:36 PM\", \"busNum\": \"A805\", \"due\": \"16\"}], \"stopName\": \"RAN (7am-6pm)\"}, {\"stopId\": \"384499\", \"time\": [{\"arriveTime\": \"2:26 PM\", \"busNum\": \"A750\", \"due\": \"6\"}, {\"arriveTime\": \"2:37 PM\", \"busNum\": \"A805\", \"due\": \"17\"}], \"stopName\": \"CAL South (7am-6pm)\"}], \"routeId\": \"4598\"}, {\"routeName\": \"Soto\", \"routeTime\": [{\"stopId\": \"318319\", \"time\": [], \"stopName\": \"Soto\"}, {\"stopId\": \"292023\", \"time\": [], \"stopName\": \"Eastlake & Biggy\"}, {\"stopId\": \"318343\", \"time\": [], \"stopName\": \"Keck Medical Center\"}, {\"stopId\": \"2658491\", \"time\": [], \"stopName\": \"CSC\"}, {\"stopId\": \"1688105\", \"time\": [], \"stopName\": \"Soto II\"}], \"routeId\": \"3404\"}]";
+        if (Constants.DEBUG_JSON)
+            JSONResult = Constants.TEST_JSON;
         try {
             arr = new JSONArray(JSONResult);
             JSONObject routeObj = null;
@@ -292,7 +374,7 @@ public class Stops extends AppCompatActivity {
 
         @Override
         protected String doInBackground(Void... voids) {
-            JSONResult = new Utils().httpRequest("http://apidata.uscbus.com:8888");
+            JSONResult = new Utils().httpRequest(Constants.RELEASE_API_URL);
             return JSONResult;
         }
 

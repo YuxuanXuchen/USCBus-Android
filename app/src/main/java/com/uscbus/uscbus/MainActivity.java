@@ -1,17 +1,18 @@
 package com.uscbus.uscbus;
 
-import android.app.Activity;
+import android.annotation.SuppressLint;
+import android.app.AlertDialog;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.Typeface;
-import android.net.Uri;
 import android.os.AsyncTask;
+import android.os.Build;
+import android.support.annotation.NonNull;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.text.Layout;
-import android.util.JsonReader;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -27,14 +28,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
@@ -50,12 +44,15 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         setTitle("Routes");
+        createPersistentNotificationChannel();
+        createArrivalNotificationChannel();
         ListView listViewObj = findViewById(R.id.listViewDis);
         layout = findViewById(R.id.refreshMain);
         layout.setRefreshing(true);
         arrayAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_2, android.R.id.text1, routeIdList) {
+            @NonNull
             @Override
-            public View getView(int position, View convertView, ViewGroup parent) {
+            public View getView(int position, View convertView, @NonNull ViewGroup parent) {
                 View view = super.getView(position, convertView, parent);
                 TextView text1 = view.findViewById(android.R.id.text1);
                 TextView text2 = view.findViewById(android.R.id.text2);
@@ -98,15 +95,23 @@ public class MainActivity extends AppCompatActivity {
         Intent intent;
         if (item.getItemId() == R.id.twitterIcon) {
             intent = new Intent(MainActivity.this, Twitter.class);
+            startActivity(intent);
         } else {
-            intent = new Intent(MainActivity.this, AboutActivity.class);
+            AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+            @SuppressLint("InflateParams") View layoutView = getLayoutInflater().inflate(R.layout.about, null, false);
+            TextView promptText = layoutView.findViewById(R.id.aboutText);
+            promptText.setText(Constants.ABOUT);
+            builder.setView(layoutView);
+            final AlertDialog dialog = builder.create();
+            dialog.show();
         }
-        startActivity(intent);
         return true;
     }
 
     private void processJSON(String s) {
         JSONArray arr;
+        if (Constants.DEBUG_JSON)
+            JSONResult = Constants.TEST_JSON;
         if (JSONResult == null || JSONResult.equals("")) {
             onError();
             return;
@@ -145,13 +150,41 @@ public class MainActivity extends AppCompatActivity {
     public class FetchSchedule extends AsyncTask<Void, Void, String> {
         @Override
         protected String doInBackground(Void... voids) {
-            JSONResult = new Utils().httpRequest("http://apidata.uscbus.com:8888");
+            JSONResult = new Utils().httpRequest(Constants.RELEASE_API_URL);
             return JSONResult;
         }
 
         @Override
         protected void onPostExecute(String s) {
             processJSON(s);
+        }
+    }
+
+    private void createPersistentNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            CharSequence name = "Tracking";
+            String description = "Real-time tracking of arrival of the selected bus";
+            int importance = NotificationManager.IMPORTANCE_DEFAULT;
+            NotificationChannel channel = new NotificationChannel(Constants.NOTIFICATION_ID.PERSISTENT_CHANNEL_ID, name, importance);
+            channel.setDescription(description);
+            NotificationManager notificationManager = getSystemService(NotificationManager.class);
+            if (notificationManager != null) {
+                notificationManager.createNotificationChannel(channel);
+            }
+        }
+    }
+
+    private void createArrivalNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            CharSequence name = "Arrival";
+            String description = "Arrival of the selected bus";
+            int importance = NotificationManager.IMPORTANCE_HIGH;
+            NotificationChannel channel = new NotificationChannel(Constants.NOTIFICATION_ID.ARRIVAL_CHANNEL_ID, name, importance);
+            channel.setDescription(description);
+            NotificationManager notificationManager = getSystemService(NotificationManager.class);
+            if (notificationManager != null) {
+                notificationManager.createNotificationChannel(channel);
+            }
         }
     }
 }

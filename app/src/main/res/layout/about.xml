@@ -21,6 +21,6 @@
         android:id="@+id/aboutText"
         android:layout_below="@+id/aboutTitle"
         android:padding="20dp"
-        android:textSize="18sp"/>
+        android:textSize="14sp"/>
 
 </RelativeLayout>

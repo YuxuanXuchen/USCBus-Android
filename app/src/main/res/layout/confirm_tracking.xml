@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:padding="20dp">
+
+    <TextView
+        android:id="@+id/confirmPromptTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Background Tracking"
+        android:textSize="24sp"
+        tools:ignore="HardcodedText"
+        android:textColor="#000000"/>
+
+    <TextView
+        android:id="@+id/confirmPrompText1"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/confirmPromptTitle"
+        android:text="The arrival time will be updated through a system notification until the bus arrives."
+        android:textSize="12sp"
+        tools:ignore="HardcodedText" />
+
+    <TextView
+        android:id="@+id/confirmPromp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/confirmPrompText1"
+        android:textSize="18sp"
+        android:textColor="#000000"
+        />
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/confirmPromp"
+        android:paddingTop="10dp">
+
+        <TextView
+            android:id="@+id/dummyView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerHorizontal="true"/>
+
+        <Button
+            android:id="@+id/confirmTrack"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_toRightOf="@+id/dummyView"
+            android:text="Track"
+            tools:ignore="HardcodedText" />
+
+        <Button
+            android:id="@+id/cancelTrack"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_toLeftOf="@+id/dummyView"
+            android:text="Cancel"
+            tools:ignore="HardcodedText" />
+
+    </RelativeLayout>
+</RelativeLayout>
