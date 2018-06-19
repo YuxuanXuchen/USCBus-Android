@@ -158,7 +158,7 @@ public class Stops extends AppCompatActivity {
                     @Override
                     public void onClick(View v) {
                         dialog.dismiss();
-                        startBackgroundService(bus, stopId);
+                        startBackgroundService(bus, stopId, stopName);
                     }
                 });
             }
@@ -166,12 +166,13 @@ public class Stops extends AppCompatActivity {
         arrayAdapter.notifyDataSetChanged();
     }
 
-    void startBackgroundService(String bus, String stopId){
+    void startBackgroundService(String bus, String stopId, String stopName){
         Intent intent = new Intent(Stops.this, NotificationService.class);
         intent.putExtra("busId", bus);
         intent.putExtra("stopId", stopId);
         intent.putExtra("routeId", routeId);
         intent.putExtra("routeName", routeName);
+        intent.putExtra("stopName", stopName);
         intent.setAction(Constants.ACTION.START_FOREGROUND_ACTION);
         startService(intent);
     }

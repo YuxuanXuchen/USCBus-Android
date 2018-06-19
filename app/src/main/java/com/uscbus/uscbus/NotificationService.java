@@ -26,6 +26,7 @@ public class NotificationService extends Service {
     String routeName;
     String routeId;
     String stopId;
+    String stopName;
     String busId;
     String JSONResult;
     String currDue;
@@ -41,6 +42,11 @@ public class NotificationService extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
         if (intent.getAction().equals(Constants.ACTION.START_FOREGROUND_ACTION)) {
             sentArrival = false;
+            if (refreshTimer != null){
+                refreshTimer.cancel();
+                refreshTimer.purge();
+                refreshTimer = null;
+            }
             refreshTimer = new Timer();
             refreshTimer.scheduleAtFixedRate(new NotificationService.refreshTask(), 0, REFRESH_TIME);
             Bundle bundle = intent.getExtras();
@@ -48,6 +54,7 @@ public class NotificationService extends Service {
             busId = bundle.getString("busId");
             stopId = bundle.getString("stopId");
             routeName = bundle.getString("routeName");
+            stopName = bundle.getString("stopName");
             Log.d("service", busId + " " + stopId + " " + routeId);
         }
         else if (intent.getAction().equals(Constants.ACTION.STOP_FOREGROUND_ACTION)){
@@ -133,7 +140,8 @@ public class NotificationService extends Service {
             String due = processJSON();
             if (due == null) {
                 Log.d("service", "due is null");
-                sendArrivalNotification("Bus " + busId + " has arrived");
+                if (sentArrival)
+                    sendArrivalNotification("Bus " + busId + " has arrived at " + stopName);
                 stopSelf();
                 return;
             }
@@ -142,11 +150,11 @@ public class NotificationService extends Service {
             if (!due.equals(currDue)) {
                 currDue = due;
                 if (arrivalString.equals("0"))
-                    arrivalString = " is arriving";
+                    arrivalString = " is arriving at " + stopName;
                 else if (arrivalString.equals("1"))
-                    arrivalString = " will arrive in 1 min";
+                    arrivalString = " will arrive at " + stopName + " in 1 min";
                 else
-                    arrivalString = String.format(" will arrive in %s mins", arrivalString);
+                    arrivalString = String.format(" will arrive at %s in %s mins", stopName, arrivalString);
                 String notificationString = "Bus " + busId + arrivalString;
                 updateForegroundNotification(notificationString);
             }
@@ -154,7 +162,7 @@ public class NotificationService extends Service {
                 try{
                     int arrivalTime = Integer.parseInt(due);
                     if (arrivalTime < 3){
-                        sendArrivalNotification("Bus "+ busId + " is arriving");
+                        sendArrivalNotification("Bus "+ busId + " will soon arrive at " + stopName);
                         sentArrival = true;
                     }
                 }

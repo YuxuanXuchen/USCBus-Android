@@ -19,7 +19,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_below="@+id/confirmPromptTitle"
-        android:text="The arrival time will be updated through a system notification until the bus arrives."
+        android:text="The arrival time will be updated through a system notification until the bus arrives. You will also receive a reminder notification when the bus is less than 2 mins away."
         android:textSize="12sp"
         tools:ignore="HardcodedText" />
 
