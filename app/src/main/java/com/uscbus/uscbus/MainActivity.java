@@ -13,6 +13,7 @@ import android.support.annotation.NonNull;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -36,6 +37,7 @@ public class MainActivity extends AppCompatActivity {
     private SwipeRefreshLayout layout;
     List<String> routeList = new ArrayList<>();
     List<String> routeIdList = new ArrayList<>();
+    List<List<String>> routeStartEndList = new ArrayList<>();
     ArrayAdapter<String> arrayAdapter;
     String JSONResult;
 
@@ -49,17 +51,18 @@ public class MainActivity extends AppCompatActivity {
         ListView listViewObj = findViewById(R.id.listViewDis);
         layout = findViewById(R.id.refreshMain);
         layout.setRefreshing(true);
-        arrayAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_2, android.R.id.text1, routeIdList) {
+        arrayAdapter = new ArrayAdapter<String>(this, R.layout.route_list_item, android.R.id.text1, routeIdList) {
             @NonNull
             @Override
             public View getView(int position, View convertView, @NonNull ViewGroup parent) {
-                View view = super.getView(position, convertView, parent);
-                TextView text1 = view.findViewById(android.R.id.text1);
-                TextView text2 = view.findViewById(android.R.id.text2);
+                LayoutInflater inflater = getLayoutInflater();
+                View view = inflater.inflate(R.layout.route_list_item, null,true);
+                TextView text1 = view.findViewById(R.id.route_name);
+                TextView text2 = view.findViewById(R.id.route_start_stop);
                 text1.setTypeface(text1.getTypeface(), Typeface.BOLD);
                 text1.setText(routeList.get(position));
-                text1.setTextSize(18);
-                text2.setText("Route " + routeIdList.get(position));
+                List<String> startEndList = routeStartEndList.get(position);
+                text2.setText(startEndList.get(0) + " <--> " + startEndList.get(1));
                 text2.setTextColor(Color.parseColor("#a6a6a6"));
                 return view;
             }
@@ -132,6 +135,11 @@ public class MainActivity extends AppCompatActivity {
                     JSONObject routeObj = arr.getJSONObject(i);
                     routeList.add(routeObj.getString("routeName"));
                     routeIdList.add(routeObj.getString("routeId"));
+                    JSONArray routeTime = routeObj.getJSONArray("routeTime");
+                    List<String> startEndStops = new ArrayList<>();
+                    startEndStops.add(routeTime.getJSONObject(0).getString("stopName"));
+                    startEndStops.add(routeTime.getJSONObject(routeTime.length()-1).getString("stopName"));
+                    routeStartEndList.add(startEndStops);
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }

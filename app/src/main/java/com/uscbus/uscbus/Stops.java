@@ -18,6 +18,7 @@ import android.text.SpannableString;
 import android.text.style.AlignmentSpan;
 import android.text.style.LineHeightSpan;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -33,6 +34,7 @@ import android.widget.Toast;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.w3c.dom.Text;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -46,6 +48,7 @@ public class Stops extends AppCompatActivity {
     List<String> stopIdList = new ArrayList<>();
     List<List<String>> busList = new ArrayList<>();
     List<List<String>> arrivalList = new ArrayList<>();
+    List<List<String>> arrivalTimeList = new ArrayList<>();
     ArrayAdapter<String> arrayAdapter;
     String JSONResult;
     String routeName;
@@ -64,13 +67,12 @@ public class Stops extends AppCompatActivity {
         routeId = bundle.getString("routeId");
         setTitle(routeName);
         layout.setRefreshing(true);
-        arrayAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_2, android.R.id.text1, stopList) {
+        arrayAdapter = new ArrayAdapter<String>(this, R.layout.stop_list_item, android.R.id.text1, stopList) {
             @Override
             public View getView(int position, View convertView, ViewGroup parent) {
-                View view = super.getView(position, convertView, parent);
-                TextView text1 = view.findViewById(android.R.id.text1);
-                TextView text2 = view.findViewById(android.R.id.text2);
-                updateListItems(position, text1, text2);
+                LayoutInflater inflater = getLayoutInflater();
+                View view = inflater.inflate(R.layout.stop_list_item, null,true);
+                updateListItems(position, view);
                 return view;
             }
         };
@@ -109,18 +111,19 @@ public class Stops extends AppCompatActivity {
             busList.add("");
             arrivalList.add("");
         }
-        arrayAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, busList) {
+        arrayAdapter = new ArrayAdapter<String>(this, R.layout.stop_detail_item, busList) {
             @NonNull
             @Override
             public View getView(int position, @Nullable View convertView, @NonNull ViewGroup parent) {
-                View view = super.getView(position, convertView, parent);
-                TextView textView = view.findViewById(android.R.id.text1);
+                LayoutInflater inflater = getLayoutInflater();
+                View view = inflater.inflate(R.layout.stop_detail_item, null,true);
+                TextView busId = view.findViewById(R.id.stop_detail_bus_id);
                 if (position == 0 && busList.get(position).equals("")) {
-                    textView.setText("Currently there is no bus arrival time available.");
+                    busId.setText("Currently there is no bus arrival time available.");
                     return view;
                 }
-                textView.setTextSize(20);
                 String busName = "Bus " + busList.get(position);
+                busId.setText(busName);
                 String arrival = arrivalList.get(position);
                 if (arrival.equals("0"))
                     arrival = "Arriving";
@@ -128,7 +131,8 @@ public class Stops extends AppCompatActivity {
                     arrival = "1 min";
                 else
                     arrival += " mins";
-                setLeftRightString(textView, busName, arrival);
+                TextView arrivalTextView = view.findViewById(R.id.stop_detail_time);
+                arrivalTextView.setText(arrival);
                 return view;
             }
         };
@@ -178,87 +182,38 @@ public class Stops extends AppCompatActivity {
         startService(intent);
     }
 
-    private void updateListItems(int position, TextView text1, TextView text2) {
-        text1.setTypeface(text1.getTypeface(), Typeface.BOLD);
-        StringBuilder sbSubText = new StringBuilder();
+    private void updateListItems(int position, View view) {
         String stopNameString = stopList.get(position);
         String stopIdString = "Stop " + stopIdList.get(position);
         String arrivalString = "";
         String arrivalBus = "";
+        String arrivalTimeStr = "";
         List<String> eachBusList = busList.get(position);
         List<String> eachDueList = arrivalList.get(position);
+        List<String> eachArrivalTimeList = arrivalTimeList.get(position);
 
         for (int i = 0; i < eachBusList.size(); i++) {
-            // the first bus coming
-            if (i == 0) {
-                arrivalBus = "#" + eachBusList.get(i);
-                if (eachDueList.get(i).equals("0")) {
-                    arrivalString += ("Arriving");
-                } else if (eachDueList.get(i).equals("1")) {
-                    arrivalString += ("1 min");
-                } else
-                    arrivalString += (eachDueList.get(i) + " mins");
-                continue;
-            }
-            sbSubText.append("#" + eachBusList.get(i));
+            arrivalTimeStr = eachArrivalTimeList.get(i);
+            arrivalBus = "#" + eachBusList.get(i);
             if (eachDueList.get(i).equals("0")) {
-                sbSubText.append(" Arriving");
+                arrivalString += ("Arriving");
             } else if (eachDueList.get(i).equals("1")) {
-                sbSubText.append(" 1 min");
+                arrivalString += ("1 min");
             } else
-                sbSubText.append(" " + eachDueList.get(i) + " mins");
-            sbSubText.append("\n");
+                arrivalString += (eachDueList.get(i) + " mins");
+            break;
         }
         if (eachBusList.isEmpty()) {
             arrivalBus = "Not available";
         }
-        text2.setTextColor(Color.parseColor("#a6a6a6"));
-        setLeftRightString(text1, stopNameString, arrivalString);
-        setLeftRightString(text2, stopIdString, arrivalBus);
-    }
-
-    private void setLeftRightString(TextView view, String leftText, String rightText) {
-        String fullText = leftText + "\n " + rightText;     // only works if  linefeed between them! "\n ";
-
-        int fullTextLength = fullText.length();
-        int leftEnd = leftText.length();
-
-        final SpannableString s = new SpannableString(fullText);
-        AlignmentSpan alignmentSpan = new AlignmentSpan.Standard(Layout.Alignment.ALIGN_OPPOSITE);
-        s.setSpan(alignmentSpan, leftEnd, fullTextLength, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-        s.setSpan(new SetLineOverlap(true), 1, fullTextLength - 2, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-        s.setSpan(new SetLineOverlap(false), fullTextLength - 1, fullTextLength, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-        view.setText(s);
-    }
-
-    private static class SetLineOverlap implements LineHeightSpan {
-        private int originalBottom = 15;        // init value ignored
-        private int originalDescent = 13;       // init value ignored
-        private Boolean overlap;                // saved state
-        private Boolean overlapSaved = false;   // ensure saved values only happen once
-
-        SetLineOverlap(Boolean overlap) {
-            this.overlap = overlap;
-        }
-
-        @Override
-        public void chooseHeight(CharSequence text, int start, int end, int spanstartv, int v,
-                                 Paint.FontMetricsInt fm) {
-            if (overlap) {
-                if (!overlapSaved) {
-                    originalBottom = fm.bottom;
-                    originalDescent = fm.descent;
-                    overlapSaved = true;
-                }
-                fm.bottom += fm.top;
-                fm.descent += fm.top;
-            } else {
-                // restore saved values
-                fm.bottom = originalBottom;
-                fm.descent = originalDescent;
-                overlapSaved = false;
-            }
-        }
+        TextView stopName = view.findViewById(R.id.stop_name);
+        TextView arrivalEta = view.findViewById(R.id.bus_eta);
+        TextView busId = view.findViewById(R.id.bus_id);
+        TextView arrivalTime = view.findViewById(R.id.arrival_time);
+        stopName.setText(stopNameString);
+        arrivalEta.setText(arrivalString);
+        busId.setText(arrivalBus);
+        arrivalTime.setText(arrivalTimeStr);
     }
 
     @Override
@@ -338,6 +293,7 @@ public class Stops extends AppCompatActivity {
             busList.clear();
             arrivalList.clear();
             stopIdList.clear();
+            arrivalTimeList.clear();
             if (routeObj == null) {
                 Log.d("json", "no match");
                 return;
@@ -350,13 +306,16 @@ public class Stops extends AppCompatActivity {
                 JSONArray arrivalArr = eachStop.getJSONArray("time");
                 List<String> eachBusList = new ArrayList<>();
                 List<String> eachDueList = new ArrayList<>();
+                List<String> eachArrivalTimeList = new ArrayList<>();
                 for (int j = 0; j < arrivalArr.length(); j++) {
                     JSONObject eachArrival = arrivalArr.getJSONObject(j);
                     eachBusList.add(eachArrival.getString("busNum"));
                     eachDueList.add(eachArrival.getString("due"));
+                    eachArrivalTimeList.add(eachArrival.getString("arriveTime"));
                 }
                 busList.add(eachBusList);
                 arrivalList.add(eachDueList);
+                arrivalTimeList.add(eachArrivalTimeList);
                 stopList.add(stopName);
                 stopIdList.add(stopId);
             }

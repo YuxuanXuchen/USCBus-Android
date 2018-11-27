@@ -25,7 +25,7 @@ public class Constants {
             "\n" +
             "We also welcome help to build the iOS version of the app.\n" +
             "\n" +
-            "Yuxuan Chen\n";
+            "Yuki Chen\n";
 
     public static boolean DEBUG_JSON = false;
 
